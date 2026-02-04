@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- アプリ名を変更 -->
     <title>継続検査用データ入力アプリ（軽専用2号様式）</title>
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
@@ -26,16 +25,21 @@
 <body>
 
 <div class="container">
-    <!-- アプリ名を変更 -->
     <h1>継続検査用データ入力アプリ（軽専用2号様式）</h1>
     <form id="pdfForm">
         
-        <!-- 1文字制限の項目 -->
+        <!-- 1文字制限の項目：手数料を追加 -->
         <div class="row">
             <div class="col">
                 <div class="form-group">
                     <label>車両提示</label>
                     <input type="text" id="presentation" maxlength="1" inputmode="numeric" placeholder="1文字">
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label>手数料</label>
+                    <input type="text" id="fee" maxlength="1" inputmode="numeric" placeholder="1文字">
                 </div>
             </div>
             <div class="col">
@@ -73,7 +77,7 @@
             </div>
         </div>
 
-        <!-- 車両情報 (プレースホルダー変更) -->
+        <!-- 車両情報 -->
         <div class="form-group">
             <label>車両番号</label>
             <div class="row">
@@ -208,6 +212,10 @@
 
         // 1. 上部マス目項目
         drawText(v('presentation'), 180, 535, 12);
+        
+        // ★追加: 手数料 (座標は車両提示の右、250あたりと推測)
+        drawText(v('fee'), 250, 535, 12); 
+
         drawText(v('cert_instruction'), 560, 535, 12);
         drawText(v('process_left'), 630, 535, 12);
         drawText(v('process_right'), 670, 535, 12);
@@ -225,7 +233,7 @@
         // 3. 車台番号
         drawText(v('chassis_num'), 380, 485, 12, BOX_WIDTH);
 
-        // 4. 整備工場コード (座標更新済み)
+        // 4. 整備工場コード (ユーザー様ご指定の調整反映済み)
         drawText(v('factory_code_1'), 698, 485, 12, BOX_WIDTH);
         drawText(v('factory_code_2'), 740, 485, 12, BOX_WIDTH);
 
