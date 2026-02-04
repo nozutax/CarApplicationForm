@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>継続検査申請書 作成ツール</title>
+    <!-- pdf-lib ライブラリの読み込み -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .box-input { letter-spacing: 5px; }
+        button { display: block; width: 100%; padding: 15px; background-color: #007BFF; color: white; border: none; border-radius: 4px; font-size: 18px; cursor: pointer; margin-top: 20px; }
+        button:hover { background-color: #0056b3; }
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; }
+        .note { font-size: 0.8em; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>継続検査申請書 作成</h1>
+    <form id="pdfForm">
+        
+        <!-- 上部チェック・数字項目 -->
+        <div class="row">
+            <div class="col"><div class="form-group"><label>車両提示 (50)</label><input type="text" id="presentation" maxlength="1" placeholder="例: 2"></div></div>
+            <div class="col"><div class="form-group"><label>証明書指示 (94)</label><input type="text" id="cert_instruction" maxlength="1" placeholder="例: 1"></div></div>
+        </div>
+
+        <div class="row">
+            <div class="col"><div class="form-group"><label>処理 左 (60)</label><input type="text" id="process_left" maxlength="1"></div></div>
+            <div class="col"><div class="form-group"><label>処理 右</label><input type="text" id="process_right" maxlength="1"></div></div>
+            <div class="col"><div class="form-group"><label>例外 (61)</label><input type="text" id="exception" maxlength="1"></div></div>
+            <div class="col"><div class="form-group"><label>制限解除 (95)</label><input type="text" id="restriction" maxlength="1"></div></div>
+        </div>
+
+        <!-- 車両情報 -->
+        <div class="form-group">
+            <label>車両番号 (1)</label>
+            <div class="row">
+                <input type="text" id="car_num_1" placeholder="地域" style="flex:2">
+                <input type="text" id="car_num_2" placeholder="分類" style="flex:1">
+                <input type="text" id="car_num_3" placeholder="平" style="flex:0.5">
+                <input type="text" id="car_num_4" placeholder="一連" style="flex:2">
+                <input type="text" id="car_num_5" placeholder="小板" style="flex:0.5">
+            </div>
+            <p class="note">※フォーム上の分割は便宜上のものです。PDF設定で微調整が必要です。</p>
+        </div>
+
+        <div class="form-group">
+            <label>車台番号 下7桁 (3)</label>
+            <input type="text" id="chassis_num" maxlength="7" class="box-input" placeholder="例: AB31234">
+        </div>
+
+        <div class="form-group">
+            <label>整備工場コード (47)</label>
+            <input type="text" id="factory_code" maxlength="10" placeholder="例: 52-12345">
+        </div>
+
+        <!-- その他コード類 -->
+        <div class="row">
+            <div class="col"><div class="form-group"><label>定期点検 (62)</label><input type="text" id="inspection" maxlength="1"></div></div>
+            <div class="col"><div class="form-group"><label>受験形態 (97)</label><input type="text" id="exam_type" maxlength="1"></div></div>
+        </div>
+
+        <div class="form-group">
+            <label>装置名等コード (63)</label>
+            <input type="text" id="device_code" placeholder="数字を連続入力 (例: 11112222...)">
+        </div>
+
+        <div class="form-group">
+            <label>走行距離計表示 (96)</label>
+            <div class="row">
+                <input type="text" id="odometer_val" placeholder="距離 (例: 1234)" style="flex:3">
+                <input type="text" id="odometer_unit" placeholder="単位 (km=1)" style="flex:1">
+            </div>
+        </div>
+
+        <!-- 住所・氏名欄 -->
+        <hr>
+        <div class="form-group">
+            <label>申請者（使用者）氏名又は名称</label>
+            <input type="text" id="applicant_name" placeholder="山田 太郎">
+        </div>
+        <div class="form-group">
+            <label>申請者 住所</label>
+            <input type="text" id="applicant_address" placeholder="東京都...">
+        </div>
+        
+        <div class="form-group">
+            <label>受検者 氏名又は名称</label>
+            <input type="text" id="examinee_name">
+        </div>
+        <div class="form-group">
+            <label>受検者 住所</label>
+            <input type="text" id="examinee_address">
+        </div>
+
+        <button type="button" onclick="generatePDF()">PDFを作成してダウンロード</button>
+    </form>
+</div>
+
+<script>
+    const { PDFDocument, rgb } = PDFLib;
+
+    async function generatePDF() {
+        // 1. テンプレートPDFとフォントの読み込み
+        // ※ローカル環境で動かす場合、httpサーバー経由でないとfetchでエラーになることがあります
+        let pdfBytes, fontBytes;
+        
+        try {
+            const pdfUrl = 'template.pdf'; // 背景PDFのファイル名
+            const fontUrl = 'font.ttf';    // 日本語フォントのファイル名
+            
+            [pdfBytes, fontBytes] = await Promise.all([
+                fetch(pdfUrl).then(res => res.arrayBuffer()),
+                fetch(fontUrl).then(res => res.arrayBuffer())
+            ]);
+        } catch (e) {
+            alert("ファイルの読み込みに失敗しました。template.pdf と font.ttf が同じフォルダにあるか確認してください。\nまた、ローカルサーバー(Live Server等)で実行してください。");
+            return;
+        }
+
+        // 2. PDFドキュメントの生成
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        
+        // フォントの埋め込み (fontkitが必要)
+        pdfDoc.registerFontkit(fontkit);
+        const customFont = await pdfDoc.embedFont(fontBytes);
+
+        // 1ページ目を取得
+        const pages = pdfDoc.getPages();
+        const page = pages[0];
+        const { width, height } = page.getSize();
+
+        // ---------------------------------------------------------
+        // 配置設定 (ここが最も重要です)
+        // x: 横位置, y: 縦位置 (左下が0,0), size: 文字サイズ
+        // ※実際のPDFに合わせて数値(座標)を微調整する必要があります。
+        // ---------------------------------------------------------
+
+        const drawText = (text, x, y, size = 10, spacing = 0) => {
+            if (!text) return;
+            // 1文字ずつ間隔を空けて描画する簡易関数（マス目対応）
+            if (spacing > 0) {
+                for (let i = 0; i < text.length; i++) {
+                    page.drawText(text[i], {
+                        x: x + (i * spacing),
+                        y: y,
+                        size: size,
+                        font: customFont,
+                        color: rgb(0, 0, 0),
+                    });
+                }
+            } else {
+                // 通常のテキスト描画
+                page.drawText(text, { x, y, size, font: customFont, color: rgb(0, 0, 0) });
+            }
+        };
+
+        // フォームの値を取得
+        const v = (id) => document.getElementById(id).value;
+
+        // === 座標のマッピング (要微調整) ===
+        // PDFの座標系は「左下が原点(0,0)」です。上にいくほどYが増えます。
+
+        // 1. 上部マス目項目
+        drawText(v('presentation'), 145, 780, 12); // 車両提示
+        drawText(v('cert_instruction'), 665, 780, 12); // 証明書指示
+        drawText(v('process_left'), 750, 780, 12); // 処理左
+        drawText(v('process_right'), 775, 780, 12); // 処理右
+        drawText(v('exception'), 880, 790, 10); // 例外
+        drawText(v('restriction'), 920, 790, 10); // 制限解除
+
+        // 2. 車両番号 (マス目に合わせて分割配置)
+        // ※文字間隔(spacing)はマスの幅に合わせる
+        const BOX_WIDTH = 25; // マスの幅の概算
+        drawText(v('car_num_1'), 40, 730, 12, BOX_WIDTH); 
+        drawText(v('car_num_2'), 190, 730, 12, BOX_WIDTH);
+        drawText(v('car_num_3'), 270, 730, 12);
+        drawText(v('car_num_4'), 310, 730, 12, BOX_WIDTH);
+        drawText(v('car_num_5'), 415, 730, 12);
+
+        // 3. 車台番号 (下7桁)
+        drawText(v('chassis_num'), 440, 730, 12, 17.5); // spacing調整必要
+
+        // 4. 整備工場コード
+        drawText(v('factory_code'), 820, 730, 12, 18); // ハイフン飛ばし等はロジック追加が必要
+
+        // 5. 定期点検・受験形態
+        drawText(v('inspection'), 40, 680, 12);
+        drawText(v('exam_type'), 100, 680, 12);
+
+        // 6. 装置名等コード
+        drawText(v('device_code'), 150, 680, 12, 18);
+
+        // 7. 走行距離計
+        drawText(v('odometer_val'), 790, 680, 12, 18);
+        drawText(v('odometer_unit'), 940, 680, 12);
+
+        // 8. 氏名・住所 (下線部)
+        // 左座標(x)と、行の高さ(y)を指定
+        const LEFT_X = 70;
+        
+        // 申請者
+        drawText(v('applicant_name'), LEFT_X, 580, 10);
+        drawText(v('applicant_address'), LEFT_X, 540, 10);
+
+        // 受検者
+        drawText(v('examinee_name'), LEFT_X, 480, 10);
+        drawText(v('examinee_address'), LEFT_X, 440, 10);
+
+
+        // 3. PDFの保存とダウンロード
+        const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
+        const link = document.createElement('a');
+        link.href = pdfDataUri;
+        link.download = 'shimsa_shinsei.pdf';
+        link.click();
+    }
+</script>
+
+</body>
+</html>
