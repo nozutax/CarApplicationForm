@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>継続検査申請書 作成ツール</title>
+    <!-- アプリ名を変更 -->
+    <title>継続検査用データ入力アプリ（軽専用2号様式）</title>
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; }
         .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #333; }
+        h1 { text-align: center; color: #333; font-size: 24px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; }
         input[type="text"], input[type="number"] { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; }
@@ -25,7 +26,8 @@
 <body>
 
 <div class="container">
-    <h1>継続検査申請書 作成</h1>
+    <!-- アプリ名を変更 -->
+    <h1>継続検査用データ入力アプリ（軽専用2号様式）</h1>
     <form id="pdfForm">
         
         <!-- 1文字制限の項目 -->
@@ -71,7 +73,7 @@
             </div>
         </div>
 
-        <!-- 車両情報 -->
+        <!-- 車両情報 (プレースホルダー変更) -->
         <div class="form-group">
             <label>車両番号</label>
             <div class="row">
@@ -204,7 +206,7 @@
 
         // === 座標のマッピング ===
 
-        // 1. 上部マス目項目 (1文字制限)
+        // 1. 上部マス目項目
         drawText(v('presentation'), 180, 535, 12);
         drawText(v('cert_instruction'), 560, 535, 12);
         drawText(v('process_left'), 630, 535, 12);
@@ -220,12 +222,12 @@
         drawText(v('car_num_4'), 270, 485, 12, BOX_WIDTH);
         drawText(v('car_num_5'), 345, 485, 12);
 
-        // 3. 車台番号 (7文字制限)
+        // 3. 車台番号
         drawText(v('chassis_num'), 380, 485, 12, BOX_WIDTH);
 
-        // 4. 整備工場コード (2桁 + 5桁)
+        // 4. 整備工場コード (座標更新済み)
         drawText(v('factory_code_1'), 698, 485, 12, 18);
-        drawText(v('factory_code_2'), 740, 485, 12, 18); // 座標調整済み
+        drawText(v('factory_code_2'), 740, 485, 12, 18);
 
         // 8. 氏名・住所
         const LEFT_X = 150;
