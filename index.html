@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>継続検査申請書 作成ツール</title>
-    <!-- pdf-lib ライブラリの読み込み -->
     <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.min.js"></script>
     <style>
@@ -17,9 +16,10 @@
         .box-input { letter-spacing: 5px; }
         button { display: block; width: 100%; padding: 15px; background-color: #007BFF; color: white; border: none; border-radius: 4px; font-size: 18px; cursor: pointer; margin-top: 20px; }
         button:hover { background-color: #0056b3; }
-        .row { display: flex; gap: 10px; }
+        .row { display: flex; gap: 10px; align-items: center; }
         .col { flex: 1; }
         .note { font-size: 0.8em; color: #666; margin-top: 5px; }
+        .hyphen { font-weight: bold; padding: 0 5px; }
     </style>
 </head>
 <body>
@@ -51,7 +51,6 @@
                 <input type="text" id="car_num_4" placeholder="一連" style="flex:2">
                 <input type="text" id="car_num_5" placeholder="小板" style="flex:0.5">
             </div>
-            <p class="note">※フォーム上の分割は便宜上のものです。</p>
         </div>
 
         <div class="form-group">
@@ -59,27 +58,13 @@
             <input type="text" id="chassis_num" maxlength="7" class="box-input" placeholder="例: AB31234">
         </div>
 
+        <!-- 整備工場コード (2桁 - 5桁) -->
         <div class="form-group">
             <label>整備工場コード</label>
-            <input type="text" id="factory_code" maxlength="10" placeholder="例: 52-12345">
-        </div>
-
-        <!-- その他コード類 -->
-        <div class="row">
-            <div class="col"><div class="form-group"><label>定期点検</label><input type="text" id="inspection" maxlength="1"></div></div>
-            <div class="col"><div class="form-group"><label>受験形態</label><input type="text" id="exam_type" maxlength="1"></div></div>
-        </div>
-
-        <div class="form-group">
-            <label>装置名等コード</label>
-            <input type="text" id="device_code" placeholder="数字を連続入力 (例: 11112222...)">
-        </div>
-
-        <div class="form-group">
-            <label>走行距離計表示</label>
             <div class="row">
-                <input type="text" id="odometer_val" placeholder="距離 (例: 1234)" style="flex:3">
-                <input type="text" id="odometer_unit" placeholder="単位 (km=1)" style="flex:1">
+                <input type="text" id="factory_code_1" maxlength="2" placeholder="2桁" style="flex:1">
+                <span class="hyphen">-</span>
+                <input type="text" id="factory_code_2" maxlength="5" placeholder="5桁" style="flex:2">
             </div>
         </div>
 
@@ -94,13 +79,16 @@
             <input type="text" id="applicant_address" placeholder="東京都...">
         </div>
         
+        <!-- 受検者（履歴機能付き） -->
         <div class="form-group">
             <label>受検者 氏名又は名称</label>
-            <input type="text" id="examinee_name">
+            <input type="text" id="examinee_name" list="examinee_name_list" autocomplete="off" placeholder="入力すると履歴候補が出ます">
+            <datalist id="examinee_name_list"></datalist>
         </div>
         <div class="form-group">
             <label>受検者 住所</label>
-            <input type="text" id="examinee_address">
+            <input type="text" id="examinee_address" list="examinee_address_list" autocomplete="off" placeholder="入力すると履歴候補が出ます">
+            <datalist id="examinee_address_list"></datalist>
         </div>
 
         <button type="button" onclick="generatePDF()">PDFを作成してダウンロード</button>
@@ -110,42 +98,66 @@
 <script>
     const { PDFDocument, rgb } = PDFLib;
 
+    // --- 履歴保存機能 ---
+    const STORAGE_KEY_NAME = 'examinee_name_history';
+    const STORAGE_KEY_ADDR = 'examinee_address_history';
+
+    // ページ読み込み時に履歴をリストにセット
+    window.onload = function() {
+        loadHistory(STORAGE_KEY_NAME, 'examinee_name_list');
+        loadHistory(STORAGE_KEY_ADDR, 'examinee_address_list');
+    };
+
+    function loadHistory(key, datalistId) {
+        const history = JSON.parse(localStorage.getItem(key) || '[]');
+        const datalist = document.getElementById(datalistId);
+        datalist.innerHTML = '';
+        // 新しいものが上に来るように逆順などで表示しても良い
+        history.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item;
+            datalist.appendChild(option);
+        });
+    }
+
+    function saveHistory(key, value) {
+        if (!value) return;
+        let history = JSON.parse(localStorage.getItem(key) || '[]');
+        // 重複削除して先頭に追加（直近に使ったものを候補に出すため）
+        history = history.filter(item => item !== value);
+        history.unshift(value);
+        // 最大保存数を制限する（例: 20件）
+        if (history.length > 20) history.pop();
+        localStorage.setItem(key, JSON.stringify(history));
+    }
+    // ------------------
+
     async function generatePDF() {
         // 1. テンプレートPDFとフォントの読み込み
-        // ※ローカル環境で動かす場合、httpサーバー経由でないとfetchでエラーになることがあります
         let pdfBytes, fontBytes;
         
         try {
-            const pdfUrl = 'template.pdf'; // 背景PDFのファイル名
-            const fontUrl = 'font.ttf';    // 日本語フォントのファイル名
+            const pdfUrl = 'template.pdf';
+            const fontUrl = 'font.ttf';
             
             [pdfBytes, fontBytes] = await Promise.all([
                 fetch(pdfUrl).then(res => res.arrayBuffer()),
                 fetch(fontUrl).then(res => res.arrayBuffer())
             ]);
         } catch (e) {
-            alert("ファイルの読み込みに失敗しました。template.pdf と font.ttf が同じフォルダにあるか確認してください。\nまた、ローカルサーバー(Live Server等)で実行してください。");
+            alert("ファイルの読み込みに失敗しました。template.pdf と font.ttf の配置を確認してください。");
             return;
         }
 
         // 2. PDFドキュメントの生成
         const pdfDoc = await PDFDocument.load(pdfBytes);
-        
-        // フォントの埋め込み (fontkitが必要)
         pdfDoc.registerFontkit(fontkit);
         const customFont = await pdfDoc.embedFont(fontBytes);
-
-        // 1ページ目を取得
-        const pages = pdfDoc.getPages();
-        const page = pages[0];
+        const page = pdfDoc.getPages()[0];
         
-        // ---------------------------------------------------------
-        // 配置設定
-        // ---------------------------------------------------------
-
+        // 描画関数の定義
         const drawText = (text, x, y, size = 10, spacing = 0) => {
             if (!text) return;
-            // 1文字ずつ間隔を空けて描画する簡易関数（マス目対応）
             if (spacing > 0) {
                 for (let i = 0; i < text.length; i++) {
                     page.drawText(text[i], {
@@ -157,61 +169,57 @@
                     });
                 }
             } else {
-                // 通常のテキスト描画
                 page.drawText(text, { x, y, size, font: customFont, color: rgb(0, 0, 0) });
             }
         };
 
-        // フォームの値を取得
         const v = (id) => document.getElementById(id).value;
 
         // === 座標のマッピング ===
-        
+
         // 1. 上部マス目項目
-        drawText(v('presentation'), 180, 535, 12); // 車両提示
-        drawText(v('cert_instruction'), 560, 535, 12); // 証明書指示
-        drawText(v('process_left'), 630, 535, 12); // 処理左
-        drawText(v('process_right'), 670, 535, 12); // 処理右
-        drawText(v('exception'), 745, 535, 10); // 例外
-        drawText(v('restriction'), 775, 535, 10); // 制限解除
+        drawText(v('presentation'), 180, 535, 12);
+        drawText(v('cert_instruction'), 560, 535, 12);
+        drawText(v('process_left'), 630, 535, 12);
+        drawText(v('process_right'), 670, 535, 12);
+        drawText(v('exception'), 745, 535, 10);
+        drawText(v('restriction'), 775, 535, 10);
 
         // 2. 車両番号
-        const BOX_WIDTH = 17; // マスの幅
+        const BOX_WIDTH = 17; 
         drawText(v('car_num_1'), 40, 485, 12, 30); 
         drawText(v('car_num_2'), 170, 485, 12, BOX_WIDTH);
         drawText(v('car_num_3'), 240, 485, 12);
         drawText(v('car_num_4'), 270, 485, 12, BOX_WIDTH);
         drawText(v('car_num_5'), 345, 485, 12);
 
-        // 3. 車台番号 (下7桁)
+        // 3. 車台番号
         drawText(v('chassis_num'), 380, 485, 12, BOX_WIDTH);
 
-        // 4. 整備工場コード
-        drawText(v('factory_code'), 690, 485, 12, 18);
-
-        // 5. 定期点検・受験形態
-        drawText(v('inspection'), 40, 410, 12);
-        drawText(v('exam_type'), 80, 410, 12);
-
-        // 6. 装置名等コード
-        drawText(v('device_code'), 130, 410, 12, 17);
-
-        // 7. 走行距離計
-        drawText(v('odometer_val'), 690, 410, 12, 18);
-        drawText(v('odometer_unit'), 840, 410, 12);
+        // 4. 整備工場コード (分割配置)
+        // 2桁部分
+        drawText(v('factory_code_1'), 690, 485, 12, 18);
+        // 5桁部分 (2桁 + ハイフン1枠分あけて配置)
+        // 690 + (18 * 2文字) + (ハイフン枠 約18) = 744付近
+        drawText(v('factory_code_2'), 744, 485, 12, 18);
 
         // 8. 氏名・住所
         const LEFT_X = 150;
         
-        // 申請者
         drawText(v('applicant_name'), LEFT_X, 330, 10);
         drawText(v('applicant_address'), LEFT_X, 290, 10);
 
-        // 受検者
         drawText(v('examinee_name'), LEFT_X, 220, 10);
         drawText(v('examinee_address'), LEFT_X, 180, 10);
 
-        // 3. PDFの保存とダウンロード
+        // --- 履歴の保存処理 ---
+        saveHistory(STORAGE_KEY_NAME, v('examinee_name'));
+        saveHistory(STORAGE_KEY_ADDR, v('examinee_address'));
+        // 次回利用時のためにリストをリロード
+        loadHistory(STORAGE_KEY_NAME, 'examinee_name_list');
+        loadHistory(STORAGE_KEY_ADDR, 'examinee_address_list');
+
+        // 3. ダウンロード
         const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
         const link = document.createElement('a');
         link.href = pdfDataUri;
