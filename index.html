@@ -28,7 +28,7 @@
     <h1>継続検査用データ入力アプリ（軽専用2号様式）</h1>
     <form id="pdfForm">
         
-        <!-- 1文字制限の項目：手数料を追加 -->
+        <!-- 1文字制限の項目 -->
         <div class="row">
             <div class="col">
                 <div class="form-group">
@@ -230,7 +230,7 @@
         // 3. 車台番号
         drawText(v('chassis_num'), 380, 485, 12, BOX_WIDTH);
 
-        // 4. 整備工場コード (ユーザー様ご指定の調整反映済み)
+        // 4. 整備工場コード
         drawText(v('factory_code_1'), 698, 485, 12, BOX_WIDTH);
         drawText(v('factory_code_2'), 740, 485, 12, BOX_WIDTH);
 
@@ -249,11 +249,30 @@
         loadHistory(STORAGE_KEY_NAME, 'examinee_name_list');
         loadHistory(STORAGE_KEY_ADDR, 'examinee_address_list');
 
-        // 3. ダウンロード処理
+        // 3. ファイル名の生成処理
+        // 現在の日時を取得 (YYYYMMDD)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // 月は0始まりなので+1
+        const day = String(now.getDate()).padStart(2, '0');
+        const dateStr = `${year}${month}${day}`;
+
+        // 申請者名を取得
+        let applicant = v('applicant_name');
+        if (!applicant) {
+            applicant = '名称未入力';
+        }
+        // ファイル名として不適切な文字（/や:など）は削除する
+        applicant = applicant.replace(/[\\/:*?"<>|]/g, '');
+
+        // ファイル名を組み立て
+        const fileName = `${dateStr}_軽専用第2号様式_${applicant}.pdf`;
+
+        // 4. ダウンロード実行
         const pdfDataUri = await pdfDoc.saveAsBase64({ dataUri: true });
         const link = document.createElement('a');
         link.href = pdfDataUri;
-        link.download = 'shimsa_shinsei.pdf';
+        link.download = fileName; // 生成したファイル名をセット
         link.click();
     }
 </script>
