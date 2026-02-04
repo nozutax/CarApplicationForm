@@ -172,50 +172,50 @@
         // PDFの座標系は「左下が原点(0,0)」です。上にいくほどYが増えます。
 
         // 1. 上部マス目項目
-        drawText(v('presentation'), 145, 780, 12); // 車両提示
-        drawText(v('cert_instruction'), 665, 780, 12); // 証明書指示
-        drawText(v('process_left'), 750, 780, 12); // 処理左
-        drawText(v('process_right'), 775, 780, 12); // 処理右
-        drawText(v('exception'), 880, 790, 10); // 例外
-        drawText(v('restriction'), 920, 790, 10); // 制限解除
+        drawText(v('presentation'), 145, 520, 12); // 車両提示
+        drawText(v('cert_instruction'), 665, 520, 12); // 証明書指示
+        drawText(v('process_left'), 750, 520, 12); // 処理左
+        drawText(v('process_right'), 775, 520, 12); // 処理右
+        drawText(v('exception'), 880, 520, 10); // 例外
+        drawText(v('restriction'), 920, 520, 10); // 制限解除
 
         // 2. 車両番号 (マス目に合わせて分割配置)
         // ※文字間隔(spacing)はマスの幅に合わせる
         const BOX_WIDTH = 25; // マスの幅の概算
-        drawText(v('car_num_1'), 40, 730, 12, BOX_WIDTH); 
-        drawText(v('car_num_2'), 190, 730, 12, BOX_WIDTH);
-        drawText(v('car_num_3'), 270, 730, 12);
-        drawText(v('car_num_4'), 310, 730, 12, BOX_WIDTH);
-        drawText(v('car_num_5'), 415, 730, 12);
+        drawText(v('car_num_1'), 40, 490, 12, BOX_WIDTH); 
+        drawText(v('car_num_2'), 190, 490, 12, BOX_WIDTH);
+        drawText(v('car_num_3'), 270, 490, 12);
+        drawText(v('car_num_4'), 310, 490, 12, BOX_WIDTH);
+        drawText(v('car_num_5'), 415, 490, 12);
 
         // 3. 車台番号 (下7桁)
-        drawText(v('chassis_num'), 440, 730, 12, 17.5); // spacing調整必要
+        drawText(v('chassis_num'), 440, 490, 12, 17.5); // spacing調整必要
 
         // 4. 整備工場コード
-        drawText(v('factory_code'), 820, 730, 12, 18); // ハイフン飛ばし等はロジック追加が必要
+        drawText(v('factory_code'), 820, 490, 12, 18); // ハイフン飛ばし等はロジック追加が必要
 
         // 5. 定期点検・受験形態
-        drawText(v('inspection'), 40, 680, 12);
-        drawText(v('exam_type'), 100, 680, 12);
+        drawText(v('inspection'), 40,420, 12);
+        drawText(v('exam_type'), 100, 420, 12);
 
         // 6. 装置名等コード
-        drawText(v('device_code'), 150, 680, 12, 18);
+        drawText(v('device_code'), 150, 420, 12, 18);
 
         // 7. 走行距離計
-        drawText(v('odometer_val'), 790, 680, 12, 18);
-        drawText(v('odometer_unit'), 940, 680, 12);
+        drawText(v('odometer_val'), 790, 420, 12, 18);
+        drawText(v('odometer_unit'), 940, 420, 12);
 
         // 8. 氏名・住所 (下線部)
         // 左座標(x)と、行の高さ(y)を指定
-        const LEFT_X = 70;
+        const LEFT_X = 100;
         
         // 申請者
-        drawText(v('applicant_name'), LEFT_X, 580, 10);
-        drawText(v('applicant_address'), LEFT_X, 540, 10);
+        drawText(v('applicant_name'), LEFT_X, 220, 10);
+        drawText(v('applicant_address'), LEFT_X, 180, 10);
 
         // 受検者
-        drawText(v('examinee_name'), LEFT_X, 480, 10);
-        drawText(v('examinee_address'), LEFT_X, 440, 10);
+        drawText(v('examinee_name'), LEFT_X, 140, 10);
+        drawText(v('examinee_address'), LEFT_X, 100, 10);
 
 
         // 3. PDFの保存とダウンロード
